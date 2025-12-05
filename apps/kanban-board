@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban Board - Project Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --border-color: #e1e4e8;
+            --text-primary: #24292e;
+            --text-secondary: #586069;
+            --accent-blue: #0366d6;
+            --todo-red: #dc3545;
+            --progress-yellow: #ffc107;
+            --done-green: #28a745;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .header {
+            max-width: 1400px;
+            margin: 0 auto 30px;
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .toolbar {
+            max-width: 1400px;
+            margin: 0 auto 20px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 15px;
+            padding: 0 20px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .task-count {
+            font-size: 14px;
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            background: var(--card-bg);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .clear-btn {
+            padding: 8px 16px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .clear-btn:hover {
+            background: #f6f8fa;
+            color: var(--text-primary);
+        }
+
+        .board {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+            height: calc(100vh - 180px);
+            min-height: 600px;
+        }
+
+        .column {
+            flex: 1;
+            background: var(--card-bg);
+            padding: 0;
+            border-right: 3px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .column:last-child {
+            border-right: none;
+        }
+
+        .column-header {
+            padding: 20px;
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .column:nth-child(1) .column-header {
+            background: var(--todo-red);
+        }
+
+        .column:nth-child(2) .column-header {
+            background: var(--progress-yellow);
+            color: var(--text-primary);
+        }
+
+        .column:nth-child(3) .column-header {
+            background: var(--done-green);
+        }
+
+        .column-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .column-title {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .column-count {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .column:nth-child(2) .column-count {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .add-task-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            cursor: pointer;
+            font-size: 20px;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .add-task-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .column:nth-child(2) .add-task-btn {
+            background: rgba(0, 0, 0, 0.1);
+            border-color: rgba(0, 0, 0, 0.2);
+            color: var(--text-primary);
+        }
+
+        .column:nth-child(2) .add-task-btn:hover {
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 100px;
+        }
+
+        .task-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 14px;
+            cursor: move;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .task-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        .task-card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .task-card.drag-over {
+            border-color: var(--accent-blue);
+            background: #f6f8fa;
+        }
+
+        .task-content {
+            word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .task-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .task-btn:hover {
+            background: var(--primary-bg);
+            color: var(--text-primary);
+        }
+
+        .delete-btn:hover {
+            color: #d73a49;
+            background: #ffeef0;
+        }
+
+        .add-task-form {
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        .add-task-form.active {
+            display: block;
+        }
+
+        .task-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+            margin-bottom: 8px;
+        }
+
+        .task-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .submit-btn {
+            padding: 8px 16px;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .submit-btn:hover {
+            background: #0256c7;
+        }
+
+        .cancel-btn {
+            padding: 8px 16px;
+            background: var(--card-bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .cancel-btn:hover {
+            background: var(--primary-bg);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            padding: 40px 20px;
+        }
+
+        @media (max-width: 768px) {
+            .board {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .column {
+                border-right: none;
+                border-bottom: 3px solid var(--border-color);
+                min-height: 400px;
+            }
+
+            .column:last-child {
+                border-bottom: none;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+
+        /* Drag and drop visual feedback */
+        .task-list.drag-over {
+            background: #f6f8fa;
+            border-radius: 6px;
+        }
+
+        /* Toast notification styles */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--text-primary);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            z-index: 1000;
+            box-shadow: var(--shadow-hover);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Kanban Board</h1>
+    </div>
+
+    <div class="toolbar">
+        <div class="task-count">
+            <span id="totalTasks">0</span> tasks
+        </div>
+        <button class="clear-btn" onclick="clearAllTasks()">Clear All</button>
+    </div>
+
+    <div class="board">
+        <!-- To Do Column -->
+        <div class="column">
+            <div class="column-header">
+                <div class="column-title">
+                    To Do
+                    <span class="column-count" id="todoCount">0</span>
+                </div>
+                <button class="add-task-btn" onclick="toggleAddTask('todo')">+</button>
+            </div>
+            <div class="column-content">
+                <div class="add-task-form" id="addTaskForm-todo">
+                    <textarea class="task-input" id="taskInput-todo" placeholder="Enter task description..."></textarea>
+                    <div class="form-actions">
+                        <button class="submit-btn" onclick="addTask('todo')">Add Task</button>
+                        <button class="cancel-btn" onclick="toggleAddTask('todo')">Cancel</button>
+                    </div>
+                </div>
+                <div class="task-list" id="todo" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
+            </div>
+        </div>
+
+        <!-- In Progress Column -->
+        <div class="column">
+            <div class="column-header">
+                <div class="column-title">
+                    In Progress
+                    <span class="column-count" id="inProgressCount">0</span>
+                </div>
+                <button class="add-task-btn" onclick="toggleAddTask('inProgress')">+</button>
+            </div>
+            <div class="column-content">
+                <div class="add-task-form" id="addTaskForm-inProgress">
+                    <textarea class="task-input" id="taskInput-inProgress" placeholder="Enter task description..."></textarea>
+                    <div class="form-actions">
+                        <button class="submit-btn" onclick="addTask('inProgress')">Add Task</button>
+                        <button class="cancel-btn" onclick="toggleAddTask('inProgress')">Cancel</button>
+                    </div>
+                </div>
+                <div class="task-list" id="inProgress" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
+            </div>
+        </div>
+
+        <!-- Done Column -->
+        <div class="column">
+            <div class="column-header">
+                <div class="column-title">
+                    Done
+                    <span class="column-count" id="doneCount">0</span>
+                </div>
+                <button class="add-task-btn" onclick="toggleAddTask('done')">+</button>
+            </div>
+            <div class="column-content">
+                <div class="add-task-form" id="addTaskForm-done">
+                    <textarea class="task-input" id="taskInput-done" placeholder="Enter task description..."></textarea>
+                    <div class="form-actions">
+                        <button class="submit-btn" onclick="addTask('done')">Add Task</button>
+                        <button class="cancel-btn" onclick="toggleAddTask('done')">Cancel</button>
+                    </div>
+                </div>
+                <div class="task-list" id="done" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Initialize tasks from localStorage or empty object
+        let tasks = JSON.parse(localStorage.getItem('kanbanTasks')) || {
+            todo: [],
+            inProgress: [],
+            done: []
+        };
+
+        // Load tasks on page load
+        window.onload = function() {
+            renderAllTasks();
+            updateCounts();
+        };
+
+        // Toggle add task form
+        function toggleAddTask(column) {
+            const form = document.getElementById(`addTaskForm-${column}`);
+            const input = document.getElementById(`taskInput-${column}`);
+            
+            if (form.classList.contains('active')) {
+                form.classList.remove('active');
+                input.value = '';
+            } else {
+                // Close other forms
+                document.querySelectorAll('.add-task-form').forEach(f => f.classList.remove('active'));
+                form.classList.add('active');
+                input.focus();
+            }
+        }
+
+        // Add new task
+        function addTask(column) {
+            const input = document.getElementById(`taskInput-${column}`);
+            const taskText = input.value.trim();
+
+            if (taskText === '') {
+                showToast('Please enter a task description');
+                return;
+            }
+
+            const task = {
+                id: Date.now().toString(),
+                text: taskText,
+                createdAt: new Date().toISOString()
+            };
+
+            tasks[column].push(task);
+            saveTasks();
+            renderColumn(column);
+            updateCounts();
+            
+            input.value = '';
+            toggleAddTask(column);
+            showToast('Task added successfully');
+        }
+
+        // Delete task
+        function deleteTask(column, taskId) {
+            if (confirm('Are you sure you want to delete this task?')) {
+                tasks[column] = tasks[column].filter(task => task.id !== taskId);
+                saveTasks();
+                renderColumn(column);
+                updateCounts();
+                showToast('Task deleted');
+            }
+        }
+
+        // Edit task
+        function editTask(column, taskId) {
+            const task = tasks[column].find(t => t.id === taskId);
+            if (!task) return;
+
+            const newText = prompt('Edit task:', task.text);
+            if (newText !== null && newText.trim() !== '') {
+                task.text = newText.trim();
+                saveTasks();
+                renderColumn(column);
+                showToast('Task updated');
+            }
+        }
+
+        // Drag and drop functions
+        function drag(event) {
+            event.dataTransfer.setData('taskId', event.target.dataset.taskId);
+            event.dataTransfer.setData('sourceColumn', event.target.dataset.column);
+            event.target.classList.add('dragging');
+        }
+
+        function dragEnd(event) {
+            event.target.classList.remove('dragging');
+        }
+
+        function allowDrop(event) {
+            event.preventDefault();
+            const taskList = event.currentTarget;
+            if (!taskList.classList.contains('drag-over')) {
+                taskList.classList.add('drag-over');
+            }
+        }
+
+        function dragLeave(event) {
+            const taskList = event.currentTarget;
+            taskList.classList.remove('drag-over');
+        }
+
+        function drop(event) {
+            event.preventDefault();
+            const taskList = event.currentTarget;
+            taskList.classList.remove('drag-over');
+
+            const taskId = event.dataTransfer.getData('taskId');
+            const sourceColumn = event.dataTransfer.getData('sourceColumn');
+            const targetColumn = taskList.id;
+
+            if (sourceColumn !== targetColumn) {
+                const taskIndex = tasks[sourceColumn].findIndex(t => t.id === taskId);
+                if (taskIndex !== -1) {
+                    const task = tasks[sourceColumn].splice(taskIndex, 1)[0];
+                    tasks[targetColumn].push(task);
+                    saveTasks();
+                    renderColumn(sourceColumn);
+                    renderColumn(targetColumn);
+                    updateCounts();
+                    showToast(`Task moved to ${formatColumnName(targetColumn)}`);
+                }
+            }
+        }
+
+        // Render functions
+        function renderColumn(column) {
+            const columnElement = document.getElementById(column);
+            columnElement.innerHTML = '';
+
+            if (tasks[column].length === 0) {
+                columnElement.innerHTML = '<div class="empty-state">No tasks yet. Click + to add one.</div>';
+                return;
+            }
+
+            tasks[column].forEach(task => {
+                const taskCard = document.createElement('div');
+                taskCard.className = 'task-card';
+                taskCard.draggable = true;
+                taskCard.dataset.taskId = task.id;
+                taskCard.dataset.column = column;
+                taskCard.ondragstart = drag;
+                taskCard.ondragend = dragEnd;
+
+                taskCard.innerHTML = `
+                    <div class="task-content">${escapeHtml(task.text)}</div>
+                    <div class="task-actions">
+                        <button class="task-btn" onclick="editTask('${column}', '${task.id}')">Edit</button>
+                        <button class="task-btn delete-btn" onclick="deleteTask('${column}', '${task.id}')">Delete</button>
+                    </div>
+                `;
+
+                columnElement.appendChild(taskCard);
+            });
+        }
+
+        function renderAllTasks() {
+            renderColumn('todo');
+            renderColumn('inProgress');
+            renderColumn('done');
+        }
+
+        // Update task counts
+        function updateCounts() {
+            document.getElementById('todoCount').textContent = tasks.todo.length;
+            document.getElementById('inProgressCount').textContent = tasks.inProgress.length;
+            document.getElementById('doneCount').textContent = tasks.done.length;
+            
+            const total = tasks.todo.length + tasks.inProgress.length + tasks.done.length;
+            document.getElementById('totalTasks').textContent = total;
+        }
+
+        // Clear all tasks
+        function clearAllTasks() {
+            if (confirm('Are you sure you want to delete all tasks? This action cannot be undone.')) {
+                tasks = {
+                    todo: [],
+                    inProgress: [],
+                    done: []
+                };
+                saveTasks();
+                renderAllTasks();
+                updateCounts();
+                showToast('All tasks cleared');
+            }
+        }
+
+        // Save to localStorage
+        function saveTasks() {
+            localStorage.setItem('kanbanTasks', JSON.stringify(tasks));
+        }
+
+        // Utility functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatColumnName(column) {
+            const names = {
+                todo: 'To Do',
+                inProgress: 'In Progress',
+                done: 'Done'
+            };
+            return names[column] || column;
+        }
+
+        // Toast notification
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // ESC to close all forms
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.add-task-form').forEach(form => {
+                    form.classList.remove('active');
+                });
+            }
+        });
+
+        // Handle Enter key in textareas
+        document.querySelectorAll('.task-input').forEach(input => {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    const column = this.id.split('-')[1];
+                    addTask(column);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
